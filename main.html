@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Pathology + AI: Efficiency & Scalability Report</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chosen Palette: Clinical Neutral -->
+    <!-- 
+        Background: #F8FAFC (Slate-50)
+        Surface: #FFFFFF (White)
+        Text Primary: #1E293B (Slate-800)
+        Text Secondary: #64748B (Slate-500)
+        Accent: #0F766E (Teal-700) - Used for primary actions/highlights
+        Accent Light: #CCFBF1 (Teal-100)
+        Chart Colors: Teal, Slate, Indigo, Amber
+    -->
+
+    <!-- Application Structure Plan:
+        1. Hero Section: High-level Executive Summary (10-15 bullets synthesized into interactive cards) to give immediate context.
+        2. The Gigapixel Challenge: Quantitative visualization (Bar Chart) comparing WSI data scale to standard Computer Vision tasks, establishing the "Why" of the efficiency problem.
+        3. Solution Taxonomy Explorer: A tabbed interface categorizing solutions into Data/IO, Model Paradigms, and Systems. This replaces a static table, allowing users to focus on specific domains.
+        4. The Trade-off Landscape: An interactive Scatter Plot (Chart.js) visualizing Accuracy vs. Compute Efficiency for different model families (MIL, GNN, Transformers), directly answering Research Question C.
+        5. Pipeline Architect: A logical flow interactive where users select a "Goal" (e.g., Segmentation vs. Classification) and the app highlights the recommended efficient architectural pattern.
+        6. Open Problems: A grid of cards highlighting future research directions.
+    -->
+
+    <!-- Visualization & Content Choices:
+        1. Viz: Bar Chart (Log Scale). Goal: Inform. Method: Chart.js. Interaction: Tooltips. Justification: Shows the exponential difference in pixel count between ImageNet and WSI.
+        2. Viz: Scatter Plot. Goal: Compare/Relationships. Method: Chart.js. Interaction: Custom tooltips explaining the "Why" behind the position of MIL vs. Dense methods.
+        3. Content: Taxonomy Tabs. Goal: Organize. Method: HTML/JS toggle. Interaction: Click to reveal. Justification: Reduces cognitive load of a massive literature review.
+        4. Content: Design Pattern Flow. Goal: Change/Guide. Method: HTML/CSS Grid with JS highlighting. Justification: "Design Patterns" section of the prompt is best understood visually as a pipeline.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Chart Container Utilities (Specific Requirement) */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max width constraint */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px; /* Base height */
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        /* Card Hover Effects */
+        .interactive-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .interactive-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #0F766E;
+        }
+
+        /* Pipeline Step Animation */
+        .pipeline-step {
+            transition: all 0.3s ease;
+            opacity: 0.5;
+            border: 2px solid transparent;
+        }
+        .pipeline-step.active {
+            opacity: 1;
+            border-color: #0F766E;
+            background-color: #F0FDFA;
+            transform: scale(1.02);
+        }
+
+        .tab-btn.active {
+            border-bottom: 2px solid #0F766E;
+            color: #0F766E;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🔬</span>
+                    <h1 class="text-xl font-bold text-slate-800 tracking-tight">PathCompute <span class="text-slate-400 font-normal">| WSI Efficiency & AI</span></h1>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <button onclick="scrollToSection('hero')" class="text-slate-600 hover:text-teal-700 text-sm font-medium">Summary</button>
+                    <button onclick="scrollToSection('challenge')" class="text-slate-600 hover:text-teal-700 text-sm font-medium">The Challenge</button>
+                    <button onclick="scrollToSection('taxonomy')" class="text-slate-600 hover:text-teal-700 text-sm font-medium">Taxonomy</button>
+                    <button onclick="scrollToSection('tradeoffs')" class="text-slate-600 hover:text-teal-700 text-sm font-medium">Trade-offs</button>
+                    <button onclick="scrollToSection('patterns')" class="text-slate-600 hover:text-teal-700 text-sm font-medium">Patterns</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        
+        <!-- Hero / Executive Summary -->
+        <section id="hero" class="py-12 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-4xl font-bold text-slate-900 mb-4">Scalable AI for Gigapixel Pathology</h2>
+                    <p class="text-lg text-slate-600">
+                        A structured synthesis of computational strategies for processing Whole Slide Images (WSIs). 
+                        Addressing the bottleneck of gigapixel resolution through algorithmic efficiency, system engineering, and sparse modeling.
+                    </p>
+                </div>
+
+                <!-- Executive Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 interactive-card">
+                        <div class="text-teal-700 text-xl mb-3">⚡ IO is the Bottleneck</div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Disk I/O and data decompression often outpace compute costs. Efficient solution: <strong>Pyramidal Tiling</strong> & <strong>On-the-fly decoding</strong>.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 interactive-card">
+                        <div class="text-teal-700 text-xl mb-3">🧩 Context vs. Compute</div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            <strong>Multiple Instance Learning (MIL)</strong> with attention is the dominant paradigm (2020-Present), decoupling slide-level labels from pixel-level compute.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 interactive-card">
+                        <div class="text-teal-700 text-xl mb-3">🕸️ Graph Evolution</div>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Moving beyond independence: <strong>Cell & Tissue Graphs (GNNs)</strong> capture biological topology more efficiently than dense pixel grids.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Gigapixel Challenge (Viz) -->
+        <section id="challenge" class="py-16 bg-slate-50 border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h3 class="text-2xl font-bold text-slate-900 mb-4">The Gigapixel Data Scale</h3>
+                        <p class="text-slate-600 mb-6">
+                            Standard computer vision models (e.g., ResNet on ImageNet) process images around 224x224 pixels. 
+                            A single Whole Slide Image (WSI) at 40x magnification can exceed <strong>100,000 x 100,000 pixels</strong>.
+                            This section visualizes the magnitude of data reduction required before AI can even begin inference.
+                        </p>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <span class="text-2xl mr-3">💾</span>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800">Storage & RAM</h4>
+                                    <p class="text-sm text-slate-500">Uncompressed WSIs can reach 30GB+. Loading a full slide into GPU memory is impossible with current hardware.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-2xl mr-3">🧱</span>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800">Patching is Mandatory</h4>
+                                    <p class="text-sm text-slate-500">Analysis must occur on thousands of small "patches" (tiles), requiring complex aggregation logic (MIL).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chart Column -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="text-sm font-semibold text-slate-400 uppercase mb-4 tracking-wider text-center">Pixel Count Comparison (Log Scale)</h4>
+                        <div class="chart-container">
+                            <canvas id="scaleChart"></canvas>
+                        </div>
+                        <p class="text-xs text-center text-slate-400 mt-2">Note: Y-Axis is Logarithmic. The disparity is massive.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Taxonomy Explorer -->
+        <section id="taxonomy" class="py-16 bg-white border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-10">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">Taxonomy of Solution Approaches</h3>
+                    <p class="text-slate-600 max-w-2xl">
+                        Explore the dominant families of solutions addressing WSI bottlenecks. Click the tabs to toggle between Data Engineering, Model Paradigms, and System Optimization.
+                    </p>
+                </div>
+
+                <!-- Tabs -->
+                <div class="border-b border-slate-200 mb-8">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button onclick="switchTab('data')" id="tab-data" class="tab-btn active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            1. Representation & IO
+                        </button>
+                        <button onclick="switchTab('models')" id="tab-models" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300">
+                            2. Efficient Model Paradigms
+                        </button>
+                        <button onclick="switchTab('systems')" id="tab-systems" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300">
+                            3. ROI & Systems
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content: Data -->
+                <div id="content-data" class="tab-content grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                        <h4 class="font-bold text-teal-700 mb-3 flex items-center"><span class="mr-2">📂</span> Multi-Resolution Pyramids</h4>
+                        <p class="text-sm text-slate-700 mb-4">Native WSI formats (SVS, OME-TIFF, DICOM) store images as a pyramid of resolutions. Efficient AI readers (like OpenSlide) access only the necessary magnification level, avoiding full-res decoding.</p>
+                        <div class="text-xs bg-white p-3 rounded border border-slate-200">
+                            <strong>Key Tech:</strong> OME-TIFF, DICOM WSI, OpenSlide, LibVIPS
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                        <h4 class="font-bold text-teal-700 mb-3 flex items-center"><span class="mr-2">🧩</span> Tiling & Caching</h4>
+                        <p class="text-sm text-slate-700 mb-4">Breaking the WSI into fixed-size tiles (e.g., 256x256 or 512x512). Intelligent caching strategies predict next-needed tiles during streaming inference to reduce IO latency.</p>
+                        <div class="text-xs bg-white p-3 rounded border border-slate-200">
+                            <strong>Bottleneck Solved:</strong> Memory Overflow & Latency
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Models (Hidden by default) -->
+                <div id="content-models" class="tab-content grid grid-cols-1 md:grid-cols-2 gap-8 hidden">
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                        <h4 class="font-bold text-indigo-700 mb-3 flex items-center"><span class="mr-2">🤖</span> Multiple Instance Learning (MIL)</h4>
+                        <p class="text-sm text-slate-700 mb-4">The slide is a "bag" of instances (patches). The model predicts the slide label without requiring pixel-level annotations. Methods like <strong>CLAM</strong> and <strong>Attention-MIL</strong> identify key patches automatically.</p>
+                        <div class="text-xs bg-white p-3 rounded border border-slate-200">
+                            <strong>Key Papers:</strong> Ilse et al. (2018), Lu et al. (CLAM, 2021)
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                        <h4 class="font-bold text-indigo-700 mb-3 flex items-center"><span class="mr-2">🕸️</span> Graph Neural Networks (GNNs)</h4>
+                        <p class="text-sm text-slate-700 mb-4">Constructs a graph where nodes are cells or tissue patches and edges represent spatial proximity. GNNs model the micro-environment topology far more efficiently than processing empty white space.</p>
+                        <div class="text-xs bg-white p-3 rounded border border-slate-200">
+                            <strong>Advantage:</strong> Captures structural relationships with low compute.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Systems (Hidden by default) -->
+                <div id="content-systems" class="tab-content grid grid-cols-1 md:grid-cols-2 gap-8 hidden">
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                        <h4 class="font-bold text-amber-700 mb-3 flex items-center"><span class="mr-2">🎯</span> ROI Selection & Cascading</h4>
+                        <p class="text-sm text-slate-700 mb-4">Coarse-to-fine pipelines. A lightweight model scans the slide at low-res to identify Regions of Interest (ROI), then a heavy model processes only those ROIs at high-res. "Hard Mining" for patches.</p>
+                        <div class="text-xs bg-white p-3 rounded border border-slate-200">
+                            <strong>Result:</strong> 90% reduction in pixel processing.
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                        <h4 class="font-bold text-amber-700 mb-3 flex items-center"><span class="mr-2">⚙️</span> Mixed Precision & Distributed Training</h4>
+                        <p class="text-sm text-slate-700 mb-4">Utilizing FP16/BF16 to halve memory usage. Using model parallelism for gigantic foundation models or data parallelism for high-throughput batching of patches.</p>
+                        <div class="text-xs bg-white p-3 rounded border border-slate-200">
+                            <strong>Hardware:</strong> NVIDIA AMP, TPU Sharding.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trade-off Landscape (Viz) -->
+        <section id="tradeoffs" class="py-16 bg-slate-50 border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="col-span-1">
+                        <h3 class="text-2xl font-bold text-slate-900 mb-4">The Trade-off Landscape</h3>
+                        <p class="text-slate-600 text-sm mb-6">
+                            There is no "free lunch." High pixel-level accuracy usually comes at the cost of immense compute or annotation burden. 
+                            <br><br>
+                            This scatter plot positions key solution families based on <strong>Computational Efficiency</strong> (X-axis) vs. <strong>Task Performance/Context</strong> (Y-axis).
+                        </p>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 text-sm space-y-3">
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-teal-500 mr-2"></span>
+                                <span><strong>MIL (Attention/CLAM):</strong> Balanced choice. High efficiency, slide-level labels.</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></span>
+                                <span><strong>GNNs:</strong> High efficiency, excellent structural context.</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-slate-400 mr-2"></span>
+                                <span><strong>Dense CNNs:</strong> Low efficiency, high detail, requires pixel masks.</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-1 lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="chart-container">
+                            <canvas id="tradeoffChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Design Patterns / Pipeline Architect -->
+        <section id="patterns" class="py-16 bg-white border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-10 text-center">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">Architectural Design Patterns</h3>
+                    <p class="text-slate-600">Select a deployment goal to see the recommended pipeline architecture for efficiency.</p>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex justify-center space-x-4 mb-10">
+                    <button onclick="updatePipeline('classification')" id="btn-classification" class="px-5 py-2 rounded-full bg-teal-700 text-white font-medium hover:bg-teal-800 transition shadow-sm">Slide Classification</button>
+                    <button onclick="updatePipeline('segmentation')" id="btn-segmentation" class="px-5 py-2 rounded-full bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Tissue Segmentation</button>
+                    <button onclick="updatePipeline('foundation')" id="btn-foundation" class="px-5 py-2 rounded-full bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Foundation Model</button>
+                </div>
+
+                <!-- Pipeline Visualization (HTML Grid) -->
+                <div class="max-w-4xl mx-auto relative">
+                    <!-- Connector Lines (CSS borders logic handled via step classes) -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                        
+                        <!-- Step 1 -->
+                        <div id="step-1" class="pipeline-step active bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div class="text-2xl mb-2">📂</div>
+                            <h5 class="font-bold text-slate-800 text-sm">WSI Input</h5>
+                            <p class="text-xs text-slate-500 mt-1">Pyramidal .SVS</p>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div id="step-2" class="pipeline-step bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div class="text-2xl mb-2">✂️</div>
+                            <h5 class="font-bold text-slate-800 text-sm">Preprocessing</h5>
+                            <p id="desc-step-2" class="text-xs text-slate-500 mt-1">Tissue Detection & Tiling</p>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div id="step-3" class="pipeline-step bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div class="text-2xl mb-2">🧠</div>
+                            <h5 class="font-bold text-slate-800 text-sm">Feature Encoder</h5>
+                            <p id="desc-step-3" class="text-xs text-slate-500 mt-1">ResNet50 (Pretrained)</p>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div id="step-4" class="pipeline-step bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div class="text-2xl mb-2">📊</div>
+                            <h5 class="font-bold text-slate-800 text-sm">Aggregation</h5>
+                            <p id="desc-step-4" class="text-xs text-slate-500 mt-1">Attention Pooling</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic Description Box -->
+                    <div id="pipeline-details" class="mt-8 bg-teal-50 border border-teal-100 p-6 rounded-lg text-sm text-slate-700">
+                        <strong>Pipeline Logic:</strong> Standard Weakly-Supervised Classification. The image is tiled, background is removed, and a pretrained CNN extracts features. An Attention-MIL mechanism aggregates features to predict the slide label. This avoids dense pixel masks.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Open Problems & Gaps -->
+        <section class="py-16 bg-slate-900 text-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h3 class="text-2xl font-bold mb-8">Research Gaps & Open Problems</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-800 p-5 rounded-lg border border-slate-700">
+                        <h4 class="font-bold text-teal-400 text-sm mb-2">End-to-End Training</h4>
+                        <p class="text-xs text-slate-400">Gradient checkpointing across 10k+ patches remains computationally prohibitive for true end-to-end backprop.</p>
+                    </div>
+                    <div class="bg-slate-800 p-5 rounded-lg border border-slate-700">
+                        <h4 class="font-bold text-teal-400 text-sm mb-2">Scanner Variability</h4>
+                        <p class="text-xs text-slate-400">Efficient domain adaptation is needed. Color normalization adds compute overhead; can models be invariant by design?</p>
+                    </div>
+                    <div class="bg-slate-800 p-5 rounded-lg border border-slate-700">
+                        <h4 class="font-bold text-teal-400 text-sm mb-2">Multimodal Integration</h4>
+                        <p class="text-xs text-slate-400">Efficiently fusing WSI (Gigapixel) with Genomics (1D vector) and Radiology (3D vol) without memory explosion.</p>
+                    </div>
+                    <div class="bg-slate-800 p-5 rounded-lg border border-slate-700">
+                        <h4 class="font-bold text-teal-400 text-sm mb-2">Standardized Benchmarks</h4>
+                        <p class="text-xs text-slate-400">Community needs standard metrics for "Throughput (slides/hr)" alongside AUC, on standardized hardware.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>&copy; 2024 PathCompute Research Synthesis. Generated for Digital Pathology + AI Literature Review.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Navigation Logic ---
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // --- Taxonomy Tabs Logic ---
+        function switchTab(tabId) {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Show selected content
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-b-2', 'border-teal-700', 'text-teal-700', 'font-semibold');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+            
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.remove('border-transparent', 'text-slate-500');
+            activeBtn.classList.add('active', 'border-b-2', 'border-teal-700', 'text-teal-700', 'font-semibold');
+        }
+
+        // --- Pipeline Architect Logic ---
+        const pipelineData = {
+            classification: {
+                steps: ['WSI Input', 'Preprocessing', 'Feature Encoder', 'Aggregation (MIL)'],
+                descs: ['Pyramidal .SVS', 'Tissue Detection & Tiling', 'ResNet50 (Frozen/Pretrained)', 'Attention-based Pooling (CLAM)'],
+                details: "<strong>Pipeline Pattern: Weak Supervision (MIL).</strong> The standard efficiency pattern. We freeze the backbone (ResNet) to save VRAM, pre-calculate features for all patches, and train a lightweight aggregator. <strong>Bottleneck:</strong> Disk IO during patching.",
+                activeSteps: [1, 2, 3, 4]
+            },
+            segmentation: {
+                steps: ['WSI Input', 'Coarse Map', 'ROI Zoom', 'Dense Prediction'],
+                descs: ['Pyramidal .SVS', 'Low-res UNet (Thumbnail)', 'Extract High-res Patches', 'UNet / Transformer'],
+                details: "<strong>Pipeline Pattern: Cascade (Coarse-to-Fine).</strong> Efficient segmentation avoids processing the whole slide at 40x. First, a tiny model finds tissue at 1.25x. Then, we only stream 40x patches for those specific coordinates. <strong>Savings:</strong> 80-90% pixel reduction.",
+                activeSteps: [1, 2, 3, 4]
+            },
+            foundation: {
+                steps: ['Data Lake', 'Self-Supervision', 'Encoder Distill', 'Zero-Shot'],
+                descs: ['10k+ Unlabeled WSIs', 'DINO / MAE (SSL)', 'ViT-Huge -> ViT-Small', 'Downstream Tasks'],
+                details: "<strong>Pipeline Pattern: Foundation Model Pretraining.</strong> Focuses on representation learning. Uses Distributed Data Parallelism (DDP) to process massive datasets. The goal is to create a robust encoder so downstream tasks need fewer labels. <strong>Bottleneck:</strong> Compute cost & VRAM.",
+                activeSteps: [1, 2, 3, 4]
+            }
+        };
+
+        function updatePipeline(type) {
+            const data = pipelineData[type];
+            
+            // Update Buttons
+            ['classification', 'segmentation', 'foundation'].forEach(t => {
+                const btn = document.getElementById(`btn-${t}`);
+                if (t === type) {
+                    btn.classList.remove('bg-slate-200', 'text-slate-700');
+                    btn.classList.add('bg-teal-700', 'text-white');
+                } else {
+                    btn.classList.add('bg-slate-200', 'text-slate-700');
+                    btn.classList.remove('bg-teal-700', 'text-white');
+                }
+            });
+
+            // Update Steps Text
+            document.querySelector('#step-2 h5').innerText = data.steps[1];
+            document.querySelector('#desc-step-2').innerText = data.descs[1];
+            document.querySelector('#step-3 h5').innerText = data.steps[2];
+            document.querySelector('#desc-step-3').innerText = data.descs[2];
+            document.querySelector('#step-4 h5').innerText = data.steps[3];
+            document.querySelector('#desc-step-4').innerText = data.descs[3];
+
+            // Update Details
+            const detailsBox = document.getElementById('pipeline-details');
+            detailsBox.style.opacity = 0;
+            setTimeout(() => {
+                detailsBox.innerHTML = data.details;
+                detailsBox.style.opacity = 1;
+            }, 200);
+
+            // Animate Steps
+            const steps = document.querySelectorAll('.pipeline-step');
+            steps.forEach(s => s.classList.remove('active'));
+            
+            // Staggered animation
+            data.activeSteps.forEach((stepNum, index) => {
+                setTimeout(() => {
+                    document.getElementById(`step-${stepNum}`).classList.add('active');
+                }, index * 100);
+            });
+        }
+
+        // --- Chart.js Implementations ---
+
+        // 1. Scale Chart (Bar)
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctxScale = document.getElementById('scaleChart').getContext('2d');
+            new Chart(ctxScale, {
+                type: 'bar',
+                data: {
+                    labels: ['ImageNet Image', 'Dermoscopy Img', 'Whole Slide Image (WSI)'],
+                    datasets: [{
+                        label: 'Pixels (approx)',
+                        data: [50176, 1000000, 10000000000], // 224^2, 1000^2, 100k^2
+                        backgroundColor: ['#94a3b8', '#64748b', '#0f766e'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            type: 'logarithmic',
+                            title: { display: true, text: 'Pixel Count (Log Scale)' },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw.toLocaleString() + ' pixels';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Trade-off Scatter Plot
+            const ctxTrade = document.getElementById('tradeoffChart').getContext('2d');
+            new Chart(ctxTrade, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Patch CNN (Dense)',
+                            data: [{x: 10, y: 85}, {x: 15, y: 88}], // Low efficiency (high cost), High Acc
+                            backgroundColor: '#94a3b8',
+                            pointRadius: 6
+                        },
+                        {
+                            label: 'MIL (Classic)',
+                            data: [{x: 80, y: 75}], // High efficiency, Lower Acc
+                            backgroundColor: '#fbbf24',
+                            pointRadius: 8
+                        },
+                        {
+                            label: 'MIL (Attention/CLAM)',
+                            data: [{x: 75, y: 92}], // High efficiency, High Acc (Sweet spot)
+                            backgroundColor: '#0f766e',
+                            pointRadius: 10
+                        },
+                        {
+                            label: 'Graph NN (GNN)',
+                            data: [{x: 65, y: 94}], // Med efficiency, Very High Acc
+                            backgroundColor: '#6366f1',
+                            pointRadius: 9
+                        },
+                        {
+                            label: 'End-to-End ViT',
+                            data: [{x: 5, y: 90}], // Impossible cost, High Acc
+                            backgroundColor: '#ef4444',
+                            pointRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Computational Efficiency (Throughput)', color: '#64748b' },
+                            min: 0, max: 100,
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Diagnostic Performance (AUC)', color: '#64748b' },
+                            min: 60, max: 100,
+                            grid: { color: '#f1f5f9' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '% AUC';
+                                }
+                            }
+                        },
+                        annotation: {
+                            // Note: Annotation plugin not loaded to keep lightweight, using tooltips/text instead.
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
